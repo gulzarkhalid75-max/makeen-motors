@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #f4f4f5;
+  --gold:        #C9A356;
 }
 
 @theme inline {
@@ -12,15 +13,116 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base ───────────────────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+  /* Prevent FOUC flash */
+  background: #000;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+  /* Sharper rendering for thin luxury typography */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+/* ── Text selection ─────────────────────────────────────────── */
+/* Luxury gold tint — the small detail that signals premium */
+::selection {
+  background: rgba(201, 163, 86, 0.22);
+  color: #fff;
+}
+::-moz-selection {
+  background: rgba(201, 163, 86, 0.22);
+  color: #fff;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+/* Thin, near-invisible — luxury sites don't shout their chrome */
+::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.07);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.07) transparent;
+}
+
+/* ── Focus ──────────────────────────────────────────────────── */
+/* Accessible but minimal — matches the monochrome aesthetic */
+:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 4px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Typography utilities ───────────────────────────────────── */
+/* Tabular figures for specs, prices, statistics */
+.nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ── Glass reflection ───────────────────────────────────────── */
+/* Applied to glass cards for a subtle top-left corner catch-light */
+.glass-shine {
+  position: relative;
+  overflow: hidden;
+}
+.glass-shine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.045) 0%,
+    rgba(255, 255, 255, 0.012) 30%,
+    transparent 55%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Sidebar width token ────────────────────────────────────── */
+:root {
+  --sidebar-w: 280px;
+}
+
+/* ── Section gradient divider ───────────────────────────────── */
+/* Replaces the flat 1px hairline with a centred-bright fade */
+.grad-border-t {
+  position: relative;
+}
+.grad-border-t::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 20%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 80%,
+    transparent 100%
+  );
 }
