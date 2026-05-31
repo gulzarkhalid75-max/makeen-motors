@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
+import { completeProfilePath } from "@/lib/profile";
 
 // ── Constants ─────────────────────────────────────────────────
 
-const SPRING   = "cubic-bezier(0.22,0.68,0,1.2)";
-const AUTH_KEY = "makeen_auth";
+const SPRING = "cubic-bezier(0.22,0.68,0,1.2)";
 
 const fieldCls =
   "h-12 w-full bg-white/[0.04] border border-white/[0.08] px-4 text-[13px] text-white placeholder-zinc-700 outline-none focus:border-[#C9A356]/40 focus:bg-white/[0.06] transition-all duration-300";
@@ -43,6 +44,12 @@ function Check() {
   );
 }
 
+function Spinner() {
+  return (
+    <span className="w-3.5 h-3.5 rounded-full border border-[#C9A356]/35 border-t-[#C9A356] animate-spin" />
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────
 
 interface FormState {
@@ -61,18 +68,24 @@ const INIT: FormState = {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { signUp, signInWithGoogle } = useAuth();
 
-  const [form,     setForm]     = useState<FormState>(INIT);
-  const [terms,    setTerms]    = useState(false);
-  const [showPass, setShowPass] = useState(false);
-  const [showConf, setShowConf] = useState(false);
-  const [loading,  setLoading]  = useState(false);
-  const [errors,   setErrors]   = useState<Partial<Record<keyof FormState | "terms", string>>>({});
-  const [mounted,  setMounted]  = useState(false);
+  const [form,          setForm]          = useState<FormState>(INIT);
+  const [terms,         setTerms]         = useState(false);
+  const [showPass,      setShowPass]      = useState(false);
+  const [showConf,      setShowConf]      = useState(false);
+  const [loading,       setLoading]       = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [errors,        setErrors]        = useState<Partial<Record<keyof FormState | "terms" | "form", string>>>({});
+  const [mounted,       setMounted]       = useState(false);
+  const [redirectTo,    setRedirectTo]    = useState("/sell-car");
+  const [successMsg,    setSuccessMsg]    = useState("");
 
   useEffect(() => {
     document.title = "Create Account | Makeen Motors";
     setMounted(true);
+    const p = new URLSearchParams(window.location.search);
+    setRedirectTo(p.get("redirect") || "/sell-car");
   }, []);
 
   const set = (k: keyof FormState, v: string) =>
@@ -100,11 +113,45 @@ export default function RegisterPage() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     setErrors({});
-    await new Promise(r => setTimeout(r, 1000));
-    localStorage.setItem(AUTH_KEY, "1");
+    setSuccessMsg("");
+    const { error: authError, session } = await signUp(form.email.trim(), form.password, {
+      first_name: form.firstName.trim(),
+      last_name:  form.lastName.trim(),
+      phone:      form.phone.trim(),
+      city:       form.city.trim(),
+      country:    form.country.trim(),
+    });
     setLoading(false);
-    const p = new URLSearchParams(window.location.search);
-    router.push(p.get("redirect") || "/sell-car");
+    if (authError) {
+      setErrors({ form: authError.message });
+      return;
+    }
+    if (session) {
+      router.push(
+        completeProfilePath(redirectTo, {
+          full_name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+        })
+      );
+      router.refresh();
+      return;
+    }
+    setSuccessMsg(
+      "Account created. Check your email to confirm your address, then sign in to continue."
+    );
+    setTimeout(() => {
+      router.push(`/sign-in?redirect=${encodeURIComponent(redirectTo)}`);
+      router.refresh();
+    }, 2800);
+  };
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    setErrors({});
+    const { error: authError } = await signInWithGoogle(redirectTo);
+    setGoogleLoading(false);
+    if (authError) setErrors({ form: authError.message });
   };
 
   return (
@@ -207,6 +254,18 @@ export default function RegisterPage() {
                     Join Dubai&apos;s premier automotive community
                   </p>
                 </div>
+
+                {errors.form && (
+                  <div className="mb-5 px-4 py-3 border border-red-500/25 bg-red-500/[0.06]">
+                    <p className="text-[11px] text-red-400">{errors.form}</p>
+                  </div>
+                )}
+
+                {successMsg && (
+                  <div className="mb-5 px-4 py-3 border border-[#C9A356]/25 bg-[#C9A356]/[0.06]">
+                    <p className="text-[11px] text-[#C9A356]">{successMsg}</p>
+                  </div>
+                )}
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
@@ -401,11 +460,34 @@ export default function RegisterPage() {
                   <div className="flex-1 h-px bg-white/[0.06]" />
                 </div>
 
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  disabled={loading || googleLoading}
+                  className="group relative w-full py-4 border border-white/[0.12] text-[9px] tracking-[0.45em] uppercase overflow-hidden hover:border-white/25 transition-colors duration-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-3 text-zinc-300 group-hover:text-white transition-colors duration-200">
+                    {googleLoading ? (
+                      <><Spinner /> Connecting…</>
+                    ) : (
+                      <>
+                        <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden>
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                        </svg>
+                        Continue with Google
+                      </>
+                    )}
+                  </span>
+                </button>
+
                 {/* Sign in link */}
-                <p className="text-center text-[11px] tracking-wide text-zinc-600">
+                <p className="text-center text-[11px] tracking-wide text-zinc-600 mt-7">
                   Already have an account?{" "}
                   <Link
-                    href="/sign-in"
+                    href={`/sign-in?redirect=${encodeURIComponent(redirectTo)}`}
                     className="text-zinc-300 hover:text-[#C9A356] transition-colors duration-200"
                   >
                     Sign In →

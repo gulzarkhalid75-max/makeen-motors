@@ -35,7 +35,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="lg:hidden fixed inset-x-0 top-0 z-50">
+    <header className="md:hidden fixed inset-x-0 top-0 z-50">
 
       {/* ── Bar ── */}
       <div

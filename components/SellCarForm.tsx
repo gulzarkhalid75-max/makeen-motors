@@ -1,44 +1,17 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/components/AuthProvider";
+import { createClient } from "@/lib/supabase/client";
+import { fetchProfile } from "@/lib/profile";
+import { submitVehicleListing } from "@/lib/vehicle-submission";
 
 // ── Constants ─────────────────────────────────────────────────
 
 const EASE = [0.22, 0.68, 0, 1.2] as const;
-
-// ── Persistence ───────────────────────────────────────────────
-
-export const SUBMITTED_VEHICLES_KEY = "makeen_submitted_vehicles";
-
-export interface StoredVehicle {
-  id: string; brand: string; model: string; year: number;
-  mileage: string; fuelType: string; transmission: string;
-  horsepower: string; exteriorColor: string; photoDataUrl: string;
-  sellerName: string; sellerEmail: string; sellerPhone: string;
-  notes: string; submittedAt: string;
-}
-
-async function photoToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    const blobUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      const MAX = 900;
-      const ratio  = Math.min(1, MAX / Math.max(img.width, img.height));
-      const canvas = document.createElement("canvas");
-      canvas.width  = Math.round(img.width  * ratio);
-      canvas.height = Math.round(img.height * ratio);
-      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(blobUrl);
-      resolve(canvas.toDataURL("image/jpeg", 0.78));
-    };
-    img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(""); };
-    img.src = blobUrl;
-  });
-}
 
 const BRANDS = [
   "Mercedes-Benz", "BMW", "Audi", "Porsche", "Lamborghini", "Ferrari",
@@ -94,6 +67,7 @@ const STEPS = [
 interface FormState {
   brand: string; model: string; year: string; mileage: string;
   fuelType: string; transmission: string; horsepower: string; exteriorColor: string;
+  condition: string;
   photos: File[];
   name: string; email: string; phone: string; notes: string;
 }
@@ -101,6 +75,7 @@ interface FormState {
 const INIT: FormState = {
   brand: "", model: "", year: "", mileage: "",
   fuelType: "", transmission: "", horsepower: "", exteriorColor: "",
+  condition: "",
   photos: [],
   name: "", email: "", phone: "", notes: "",
 };
@@ -150,8 +125,10 @@ const VALUATION_STEPS = [
   { label: "Photos",  desc: "Upload vehicle photos"     },
 ];
 
-const CONDITIONS = ["Excellent", "Good", "Fair", "Poor"] as const;
-type Condition = (typeof CONDITIONS)[number];
+const VALUATION_CONDITIONS = ["Excellent", "Good", "Fair", "Poor"] as const;
+type Condition = (typeof VALUATION_CONDITIONS)[number];
+
+const LISTING_CONDITIONS = ["Excellent", "Good", "Fair", "Poor"];
 
 const CONDITION_META: Record<Condition, { factor: number; score: number; desc: string }> = {
   Excellent: { factor: 1.05, score: 9.5, desc: "Like new — no visible wear"     },
@@ -270,7 +247,7 @@ export function VehicleValuationCard() {
           aria-hidden
         />
 
-        <div className="relative p-8 md:p-12">
+        <div className="relative p-5 sm:p-8 md:p-12">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 md:mb-10">
             <div>
@@ -285,11 +262,11 @@ export function VehicleValuationCard() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: EASE, delay: 0.15 }}
-                className="text-4xl md:text-[3.25rem] font-thin tracking-tight text-white leading-none"
+                className="text-2xl sm:text-4xl md:text-[3.25rem] font-thin tracking-tight text-white leading-none flex flex-wrap items-baseline gap-x-2"
               >
-                {usd(result.low)}
-                <span className="text-zinc-500 mx-3">—</span>
-                {usd(result.high)}
+                <span>{usd(result.low)}</span>
+                <span className="text-zinc-500 text-xl sm:text-3xl">—</span>
+                <span>{usd(result.high)}</span>
               </motion.p>
             </div>
             <button
@@ -318,7 +295,7 @@ export function VehicleValuationCard() {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: EASE, delay: 0.6 }}
-                className="text-2xl md:text-3xl font-thin tracking-tight text-white"
+                className="text-xl md:text-3xl font-thin tracking-tight text-white"
               >
                 {usd(result.tradeIn)}
               </motion.p>
@@ -364,7 +341,7 @@ export function VehicleValuationCard() {
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A356]/50 to-transparent" />
 
       {/* Step indicator */}
-      <div className="px-7 pt-7">
+      <div className="px-5 sm:px-7 pt-5 sm:pt-7">
         <div className="flex items-center gap-0 mb-6">
           {VALUATION_STEPS.map((s, i) => (
             <div key={s.label} className="flex items-center flex-1 last:flex-none">
@@ -414,7 +391,7 @@ export function VehicleValuationCard() {
       </div>
 
       {/* Step content */}
-      <div className="px-7 py-6">
+      <div className="px-5 sm:px-7 py-5 sm:py-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -505,7 +482,7 @@ export function VehicleValuationCard() {
                 <div className="flex flex-col gap-2 sm:col-span-2">
                   <label className="text-[9px] tracking-[0.5em] uppercase text-zinc-600">Vehicle Condition *</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {CONDITIONS.map(c => (
+                    {VALUATION_CONDITIONS.map(c => (
                       <button
                         key={c} type="button" onClick={() => set("condition", c)}
                         className={`relative flex flex-col gap-1.5 p-4 border text-left transition-all duration-250 ${
@@ -532,7 +509,7 @@ export function VehicleValuationCard() {
             {step === 2 && (
               <div className="flex flex-col gap-5">
                 <div
-                  className={`relative flex flex-col items-center justify-center gap-4 p-10 border-2 border-dashed cursor-pointer transition-all duration-300 ${
+                  className={`relative flex flex-col items-center justify-center gap-4 p-6 sm:p-10 border-2 border-dashed cursor-pointer transition-all duration-300 ${
                     dragOver
                       ? "border-[#C9A356]/60 bg-[#C9A356]/[0.04]"
                       : "border-white/[0.1] hover:border-white/[0.2] hover:bg-white/[0.02]"
@@ -594,7 +571,7 @@ export function VehicleValuationCard() {
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between px-7 pb-7 pt-2">
+      <div className="flex items-center justify-between px-5 sm:px-7 pb-5 sm:pb-7 pt-2">
         <button
           type="button"
           onClick={() => setStep(s => s - 1)}
@@ -607,7 +584,7 @@ export function VehicleValuationCard() {
           <button
             type="button"
             onClick={() => canAdvance() && setStep(s => s + 1)}
-            className={`group relative flex items-center gap-2 px-8 py-3.5 border text-[9px] tracking-[0.45em] uppercase overflow-hidden transition-all duration-400 ${
+            className={`group relative flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 border text-[9px] tracking-[0.45em] uppercase overflow-hidden transition-all duration-400 ${
               canAdvance()
                 ? "border-white/50 text-white hover:border-white cursor-pointer"
                 : "border-white/[0.12] text-zinc-600 cursor-not-allowed"
@@ -638,12 +615,31 @@ export function VehicleValuationCard() {
 // ── Main component ────────────────────────────────────────────
 
 export default function SellCarForm() {
+  const { user } = useAuth();
   const [step,      setStep]      = useState(0);
   const [form,      setForm]      = useState<FormState>(INIT);
   const [previews,  setPreviews]  = useState<string[]>([]);
   const [dragOver,  setDragOver]  = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const profile = await fetchProfile(supabase, user.id);
+      if (cancelled) return;
+      setForm(p => ({
+        ...p,
+        name:  p.name  || profile?.full_name || "",
+        email: p.email || profile?.email     || user.email || "",
+        phone: p.phone || profile?.phone     || "",
+      }));
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   const setField = (k: keyof FormState, v: string) =>
     setForm(p => ({ ...p, [k]: v }));
@@ -652,7 +648,7 @@ export default function SellCarForm() {
 
   const canNext = () => {
     if (step === 0) return !!(form.brand && form.model && form.year && form.mileage);
-    if (step === 1) return !!(form.fuelType && form.transmission && form.exteriorColor);
+    if (step === 1) return !!(form.fuelType && form.transmission && form.exteriorColor && form.condition);
     if (step === 2) return true;
     if (step === 3) return !!(form.name && form.email && form.phone);
     return false;
@@ -676,42 +672,38 @@ export default function SellCarForm() {
 
   const handleSubmitForm = async () => {
     if (!canNext() || isSaving) return;
-    setIsSaving(true);
-
-    let photoDataUrl = "";
-    if (form.photos.length > 0) {
-      photoDataUrl = await photoToDataUrl(form.photos[0]).catch(() => "");
+    if (!user) {
+      setSubmitError("You must be signed in to submit a listing.");
+      return;
     }
 
-    const vehicle: StoredVehicle = {
-      id:           `sub-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      brand:        form.brand,
-      model:        form.model,
-      year:         parseInt(form.year, 10),
-      mileage:      form.mileage,
-      fuelType:     form.fuelType,
-      transmission: form.transmission,
-      horsepower:   form.horsepower,
-      exteriorColor: form.exteriorColor,
-      photoDataUrl,
-      sellerName:   form.name,
-      sellerEmail:  form.email,
-      sellerPhone:  form.phone,
-      notes:        form.notes,
-      submittedAt:  new Date().toISOString(),
-    };
+    setIsSaving(true);
+    setSubmitError("");
 
-    try {
-      const existing: StoredVehicle[] = JSON.parse(
-        localStorage.getItem(SUBMITTED_VEHICLES_KEY) ?? "[]"
-      );
-      localStorage.setItem(
-        SUBMITTED_VEHICLES_KEY,
-        JSON.stringify([...existing, vehicle])
-      );
-    } catch { /* storage unavailable / full */ }
+    const supabase = createClient();
+    const { error } = await submitVehicleListing(supabase, user.id, {
+      brand: form.brand,
+      model: form.model,
+      year: parseInt(form.year, 10),
+      mileage: form.mileage,
+      fuel_type: form.fuelType,
+      transmission: form.transmission,
+      horsepower: form.horsepower,
+      exterior_color: form.exteriorColor,
+      seller_name: form.name,
+      email: form.email,
+      phone: form.phone,
+      condition: form.condition,
+      images: form.photos,
+    });
 
     setIsSaving(false);
+
+    if (error) {
+      setSubmitError(error);
+      return;
+    }
+
     setSubmitted(true);
   };
 
@@ -744,10 +736,10 @@ export default function SellCarForm() {
         <div className="flex flex-col gap-3">
           <p className="text-[9px] tracking-[0.6em] uppercase text-[#C9A356]/70">Submission Received</p>
           <h3 className="text-3xl md:text-4xl font-thin tracking-tight uppercase leading-none text-white">
-            We'll Be In Touch
+            Your listing is under review.
           </h3>
           <p className="text-[13px] leading-[2] text-zinc-500 max-w-md mt-2">
-            Your vehicle submission for the <span className="text-white">{form.year} {form.brand} {form.model}</span> has been received. A dedicated advisor will contact you within 24 hours with a precise valuation.
+            Your <span className="text-white">{form.year} {form.brand} {form.model}</span> listing has been submitted. Our team will review it and notify you once it is approved.
           </p>
         </div>
 
@@ -866,7 +858,7 @@ export default function SellCarForm() {
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent" />
 
           {/* Step header */}
-          <div className="px-7 pt-7 pb-5 border-b border-white/[0.05]">
+          <div className="px-5 sm:px-7 pt-6 sm:pt-7 pb-5 border-b border-white/[0.05]">
             <p className="text-[8px] tracking-[0.55em] uppercase text-zinc-600 mb-1">
               Step {step + 1} of {STEPS.length}
             </p>
@@ -877,7 +869,7 @@ export default function SellCarForm() {
           </div>
 
           {/* Step content */}
-          <div className="p-7">
+          <div className="p-5 sm:p-7">
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -1028,6 +1020,27 @@ export default function SellCarForm() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Condition */}
+                    <div className="flex flex-col gap-2 sm:col-span-2">
+                      <label className="text-[9px] tracking-[0.5em] uppercase text-zinc-600">Condition *</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {LISTING_CONDITIONS.map(c => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setField("condition", c)}
+                            className={`px-3 py-3 border text-[9px] tracking-[0.25em] uppercase transition-all duration-250 ${
+                              form.condition === c
+                                ? "border-[#C9A356]/55 bg-[#C9A356]/10 text-[#C9A356]"
+                                : "border-white/[0.08] text-zinc-600 hover:border-white/20 hover:text-zinc-300"
+                            }`}
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1036,7 +1049,7 @@ export default function SellCarForm() {
                   <div className="flex flex-col gap-5">
                     {/* Drop zone */}
                     <div
-                      className={`relative flex flex-col items-center justify-center gap-4 p-10 border-2 border-dashed cursor-pointer transition-all duration-300 ${
+                      className={`relative flex flex-col items-center justify-center gap-4 p-6 sm:p-10 border-2 border-dashed cursor-pointer transition-all duration-300 ${
                         dragOver
                           ? "border-[#C9A356]/60 bg-[#C9A356]/[0.04]"
                           : "border-white/[0.1] hover:border-white/[0.2] hover:bg-white/[0.02]"
@@ -1170,7 +1183,7 @@ export default function SellCarForm() {
           </div>
 
           {/* Navigation */}
-          <div className="flex items-center justify-between px-7 pb-7 pt-2">
+          <div className="flex items-center justify-between px-5 sm:px-7 pb-6 sm:pb-7 pt-2">
             <button
               type="button"
               onClick={() => setStep(s => s - 1)}
@@ -1183,7 +1196,7 @@ export default function SellCarForm() {
               <button
                 type="button"
                 onClick={() => canNext() && setStep(s => s + 1)}
-                className={`group relative flex items-center gap-2 px-8 py-3.5 border text-[9px] tracking-[0.45em] uppercase overflow-hidden transition-all duration-400 ${
+                className={`group relative flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 border text-[9px] tracking-[0.45em] uppercase overflow-hidden transition-all duration-400 ${
                   canNext()
                     ? "border-white/50 text-white hover:border-white cursor-pointer"
                     : "border-white/[0.12] text-zinc-600 cursor-not-allowed"
@@ -1198,23 +1211,28 @@ export default function SellCarForm() {
                 <span className={`relative z-10 inline-block transition-all duration-300 ${canNext() ? "group-hover:translate-x-1 group-hover:text-black" : ""}`}>→</span>
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => handleSubmitForm()}
-                disabled={isSaving}
-                className={`group relative flex items-center gap-2 px-8 py-3.5 border text-[9px] tracking-[0.45em] uppercase overflow-hidden transition-all duration-400 ${
-                  canNext() && !isSaving
-                    ? "border-[#C9A356]/60 text-[#C9A356] hover:border-[#C9A356] cursor-pointer"
-                    : "border-white/[0.12] text-zinc-600 cursor-not-allowed"
-                }`}
-              >
-                {canNext() && !isSaving && (
-                  <span className="absolute inset-0 bg-[#C9A356]/[0.12] translate-y-full group-hover:translate-y-0 transition-transform duration-500" style={{ transitionTimingFunction: "cubic-bezier(0.22,0.68,0,1.2)" }} aria-hidden />
+              <div className="flex flex-col items-end gap-2">
+                {submitError && (
+                  <p className="text-[10px] text-red-400 max-w-xs text-right">{submitError}</p>
                 )}
-                <span className="relative z-10">
-                  {isSaving ? "Saving…" : "Submit Valuation Request"}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmitForm()}
+                  disabled={isSaving}
+                  className={`group relative flex items-center gap-2 px-8 py-3.5 border text-[9px] tracking-[0.45em] uppercase overflow-hidden transition-all duration-400 ${
+                    canNext() && !isSaving
+                      ? "border-[#C9A356]/60 text-[#C9A356] hover:border-[#C9A356] cursor-pointer"
+                      : "border-white/[0.12] text-zinc-600 cursor-not-allowed"
+                  }`}
+                >
+                  {canNext() && !isSaving && (
+                    <span className="absolute inset-0 bg-[#C9A356]/[0.12] translate-y-full group-hover:translate-y-0 transition-transform duration-500" style={{ transitionTimingFunction: "cubic-bezier(0.22,0.68,0,1.2)" }} aria-hidden />
+                  )}
+                  <span className="relative z-10">
+                    {isSaving ? "Submitting…" : "Submit Listing"}
+                  </span>
+                </button>
+              </div>
             )}
           </div>
         </div>

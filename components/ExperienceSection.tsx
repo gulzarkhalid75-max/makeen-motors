@@ -61,7 +61,7 @@ const CARDS = [
 
 export default function ExperienceSection() {
   return (
-    <section className="relative px-8 md:px-16 py-24 md:py-36 overflow-hidden">
+    <section className="relative px-6 md:px-16 py-14 md:py-36 overflow-hidden">
       {/* Top gradient border */}
       <div
         className="absolute top-0 left-0 right-0 h-px"
@@ -93,7 +93,7 @@ export default function ExperienceSection() {
           <p className="text-[9px] tracking-[0.6em] uppercase text-zinc-600 mb-3">
             Tailored For You
           </p>
-          <h2 className="text-4xl md:text-6xl font-thin tracking-tight uppercase leading-none">
+          <h2 className="text-3xl md:text-6xl font-thin tracking-tight uppercase leading-none">
             Choose Your Experience
           </h2>
         </div>

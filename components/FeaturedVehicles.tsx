@@ -149,7 +149,7 @@ export default function FeaturedVehicles() {
     : VEHICLES.filter((v) => v.types.includes(activeCategory));
 
   return (
-    <section id="featured" className="relative px-8 md:px-16 py-24 md:py-32">
+    <section id="featured" className="relative px-6 md:px-16 py-14 md:py-32">
 
       {/* Subtle gold top glow */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_55%_30%_at_50%_0%,rgba(201,163,86,0.04),transparent)]" />
@@ -166,7 +166,7 @@ export default function FeaturedVehicles() {
           <p className="text-[9px] tracking-[0.6em] uppercase text-zinc-700 mb-3">
             The Collection
           </p>
-          <h2 className="text-4xl md:text-6xl font-thin tracking-tight uppercase leading-none">
+          <h2 className="text-3xl md:text-6xl font-thin tracking-tight uppercase leading-none">
             Featured Models
           </h2>
         </div>

@@ -3,8 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import SellCarForm, { VehicleValuationCard } from "@/components/SellCarForm";
+import { useAuth } from "@/components/AuthProvider";
+import { createClient } from "@/lib/supabase/client";
+import { fetchProfile, isProfileComplete } from "@/lib/profile";
 
 // ── Data ─────────────────────────────────────────────────────
 
@@ -98,11 +102,17 @@ const CARD = {
 
 // ── Page ─────────────────────────────────────────────────────
 
+const SELL_CAR_REDIRECT = "/sell-car";
+
 export default function SellCarPage() {
+  const router = useRouter();
+  const { user, loading: authLoading, signOut } = useAuth();
+
   const [menuOpen,      setMenuOpen]      = useState(false);
   const [scrolled,      setScrolled]      = useState(false);
-  const [isAuthed,      setIsAuthed]      = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const isAuthed = !!user;
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 80);
@@ -111,8 +121,34 @@ export default function SellCarPage() {
   }, []);
 
   useEffect(() => {
-    setIsAuthed(localStorage.getItem("makeen_auth") === "1");
-  }, []);
+    if (authLoading) return;
+
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      const supabase = createClient();
+      const profile = await fetchProfile(supabase, user.id);
+      if (cancelled) return;
+
+      if (!isProfileComplete(profile)) {
+        router.replace(
+          `/complete-profile?redirect=${encodeURIComponent(SELL_CAR_REDIRECT)}`
+        );
+        return;
+      }
+
+      setShowAuthModal(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user, router]);
 
   const handleSellClick = () => {
     if (isAuthed) {
@@ -122,20 +158,15 @@ export default function SellCarPage() {
     }
   };
 
-  const handleAuth = () => {
-    localStorage.setItem("makeen_auth", "1");
-    setIsAuthed(true);
-    setShowAuthModal(false);
-    setTimeout(() => {
-      document.getElementById("sell-form-anchor")?.scrollIntoView({ behavior: "smooth" });
-    }, 320);
+  const handleSignOut = async () => {
+    await signOut();
+    setMenuOpen(false);
+    setShowAuthModal(true);
+    router.refresh();
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem("makeen_auth");
-    setIsAuthed(false);
-    setMenuOpen(false);
-  };
+  const signInHref = `/sign-in?redirect=${encodeURIComponent(SELL_CAR_REDIRECT)}`;
+  const registerHref = `/register?redirect=${encodeURIComponent(SELL_CAR_REDIRECT)}`;
 
   return (
     <>
@@ -163,7 +194,7 @@ export default function SellCarPage() {
         {/* NAVBAR                                              */}
         {/* ════════════════════════════════════════════════════ */}
         <header
-          className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
+          className={`hidden md:block fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
             scrolled
               ? "bg-black/90 backdrop-blur-xl border-b border-white/[0.07]"
               : "bg-transparent border-b border-transparent"
@@ -253,16 +284,19 @@ export default function SellCarPage() {
                     </button>
                   </>
                 ) : (
-                  ["Sign In", "Register"].map((label, i) => (
-                    <button
+                  ([
+                    { label: "Sign In",       href: signInHref },
+                    { label: "Create Account", href: registerHref },
+                  ] as const).map(({ label, href }, i) => (
+                    <Link
                       key={label}
-                      type="button"
-                      onClick={() => { setMenuOpen(false); setShowAuthModal(true); }}
+                      href={href}
+                      onClick={() => setMenuOpen(false)}
                       style={{ transitionDelay: menuOpen ? `${(NAV_LINKS.length + i + 1) * 60 + 30}ms` : "0ms" }}
-                      className={`w-full text-left py-4 text-[11px] tracking-[0.4em] uppercase border-b border-white/[0.06] last:border-0 text-zinc-400 hover:text-white transition-all duration-300 ${menuOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}
+                      className={`block w-full text-left py-4 text-[11px] tracking-[0.4em] uppercase border-b border-white/[0.06] last:border-0 text-zinc-400 hover:text-white transition-all duration-300 ${menuOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}
                     >
                       {label}
-                    </button>
+                    </Link>
                   ))
                 )}
               </div>
@@ -273,7 +307,7 @@ export default function SellCarPage() {
         {/* ════════════════════════════════════════════════════ */}
         {/* 1. HERO                                             */}
         {/* ════════════════════════════════════════════════════ */}
-        <section className="relative flex items-end min-h-[60vh] md:min-h-[65vh] overflow-hidden pt-20">
+        <section className="relative flex items-end min-h-[60vh] md:min-h-[65vh] overflow-hidden pt-14 md:pt-20">
           {/* Background image */}
           <Image
             src="/images/cars/bmw-xm-label-manhart-mhxm-900-front-quarter.avif"
@@ -291,7 +325,7 @@ export default function SellCarPage() {
           />
 
           {/* Content */}
-          <div className="relative px-8 md:px-16 pb-16 md:pb-24 w-full">
+          <div className="relative px-6 md:px-16 pb-12 md:pb-24 w-full">
             <motion.div
               className="max-w-2xl"
               initial={{ opacity: 0, y: 40 }}
@@ -303,7 +337,7 @@ export default function SellCarPage() {
                 <p className="text-[9px] tracking-[0.6em] uppercase text-zinc-500">Makeen Motors · Sell &amp; Trade</p>
               </div>
 
-              <h1 className="text-[clamp(2.8rem,7vw,5.5rem)] font-thin tracking-tight uppercase leading-[0.88] mb-6">
+              <h1 className="text-[clamp(2.2rem,7vw,5.5rem)] font-thin tracking-tight uppercase leading-[0.92] mb-5 md:mb-6">
                 Sell Your<br />
                 <span className="text-zinc-400">Luxury Vehicle</span>
               </h1>
@@ -357,7 +391,7 @@ export default function SellCarPage() {
         {/* ════════════════════════════════════════════════════ */}
         {/* 2. WHAT IS MY VEHICLE WORTH + MULTI-STEP FORM       */}
         {/* ════════════════════════════════════════════════════ */}
-        <section id="valuation-form" className="relative px-8 md:px-16 py-20 md:py-28">
+        <section id="valuation-form" className="relative px-6 md:px-16 py-14 md:py-28">
           <div
             className="absolute inset-0 pointer-events-none"
             style={{ background: "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(201,163,86,0.03), transparent)" }}
@@ -432,7 +466,7 @@ export default function SellCarPage() {
         {/* ════════════════════════════════════════════════════ */}
         {/* BRANDS WE ACCEPT                                    */}
         {/* ════════════════════════════════════════════════════ */}
-        <section className="relative px-8 md:px-16 py-10 md:py-14">
+        <section className="relative px-6 md:px-16 py-8 md:py-14">
           <div
             className="absolute top-0 left-0 right-0 h-px"
             style={{ background: "linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.05) 50%,transparent 100%)" }}
@@ -473,7 +507,7 @@ export default function SellCarPage() {
         {/* ════════════════════════════════════════════════════ */}
         {/* 3. TRADE-IN PROGRAM                                 */}
         {/* ════════════════════════════════════════════════════ */}
-        <section className="relative px-8 md:px-16 py-20 md:py-28">
+        <section className="relative px-6 md:px-16 py-14 md:py-28">
           {/* Top border gradient */}
           <div
             className="absolute top-0 left-0 right-0 h-px"
@@ -625,7 +659,7 @@ export default function SellCarPage() {
         {/* ════════════════════════════════════════════════════ */}
         {/* 4. WHY SELL WITH MAKEEN                             */}
         {/* ════════════════════════════════════════════════════ */}
-        <section className="relative px-8 md:px-16 py-20 md:py-28">
+        <section className="relative px-6 md:px-16 py-14 md:py-28">
           <div
             className="absolute top-0 left-0 right-0 h-px"
             style={{ background: "linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.06) 20%,rgba(255,255,255,0.12) 50%,rgba(255,255,255,0.06) 80%,transparent 100%)" }}
@@ -697,7 +731,7 @@ export default function SellCarPage() {
         {/* ════════════════════════════════════════════════════ */}
         {/* BOTTOM CTA STRIP                                    */}
         {/* ════════════════════════════════════════════════════ */}
-        <section className="relative px-8 md:px-16 py-16 md:py-20">
+        <section className="relative px-6 md:px-16 py-12 md:py-20">
           <div
             className="absolute top-0 left-0 right-0 h-px"
             style={{ background: "linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.06) 50%,transparent 100%)" }}
@@ -715,10 +749,10 @@ export default function SellCarPage() {
                 Start Your Valuation Today
               </h3>
             </div>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
               <a
                 href="#valuation-form"
-                className="group relative flex items-center gap-3 px-10 py-4 border border-white/50 text-[10px] tracking-[0.45em] uppercase overflow-hidden hover:border-white transition-colors duration-500"
+                className="group relative flex items-center justify-center gap-3 px-10 py-4 border border-white/50 text-[10px] tracking-[0.45em] uppercase overflow-hidden hover:border-white transition-colors duration-500"
               >
                 <span className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-500" style={{ transitionTimingFunction: "cubic-bezier(0.22,0.68,0,1.2)" }} aria-hidden />
                 <span className="relative z-10 group-hover:text-black transition-colors duration-200">Get a Valuation</span>
@@ -737,7 +771,7 @@ export default function SellCarPage() {
         {/* AUTH MODAL                                          */}
         {/* ════════════════════════════════════════════════════ */}
         <div
-          className="fixed inset-0 z-[70] flex items-center justify-center px-6"
+          className="fixed inset-0 z-[70] flex items-center justify-center px-4 sm:px-6"
           style={{
             background:           "rgba(0,0,0,0.87)",
             backdropFilter:       "blur(8px)",
@@ -746,7 +780,7 @@ export default function SellCarPage() {
             pointerEvents:        showAuthModal ? "auto" : "none",
             transition:           "opacity 0.25s ease",
           }}
-          onClick={() => setShowAuthModal(false)}
+          onClick={isAuthed ? () => setShowAuthModal(false) : undefined}
         >
           <div
             className="relative w-full max-w-sm border border-[#C9A356]/25 overflow-hidden"
@@ -770,15 +804,16 @@ export default function SellCarPage() {
 
             <div className="relative px-8 pt-10 pb-8 flex flex-col items-center text-center gap-6">
 
-              {/* Close button */}
-              <button
-                onClick={() => setShowAuthModal(false)}
-                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-zinc-700 hover:text-white transition-colors duration-200"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="w-4 h-4">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
+              {isAuthed && (
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-zinc-700 hover:text-white transition-colors duration-200"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="w-4 h-4">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
 
               {/* Lock icon */}
               <div
@@ -795,31 +830,26 @@ export default function SellCarPage() {
               <div className="flex flex-col gap-2">
                 <p className="text-[8px] tracking-[0.65em] uppercase text-[#C9A356]/65">Access Required</p>
                 <h3 className="text-[1.6rem] font-thin tracking-tight uppercase text-white leading-tight">
-                  Sign In Required
+                  You must create an account before listing a vehicle
                 </h3>
-                <p className="text-[12px] leading-[2] text-zinc-500 mt-1 max-w-[240px] mx-auto">
-                  Please sign in or create an account before listing a vehicle.
-                </p>
               </div>
 
               {/* CTA buttons */}
               <div className="flex flex-col w-full gap-3 mt-1">
-                <button
-                  type="button"
-                  onClick={handleAuth}
-                  className="group relative w-full py-4 border border-white/40 text-[9px] tracking-[0.45em] uppercase overflow-hidden hover:border-white transition-colors duration-500"
+                <Link
+                  href={signInHref}
+                  className="group relative w-full py-4 border border-white/40 text-[9px] tracking-[0.45em] uppercase overflow-hidden hover:border-white transition-colors duration-500 text-center"
                 >
                   <span className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-500" style={{ transitionTimingFunction: "cubic-bezier(0.22,0.68,0,1.2)" }} aria-hidden />
                   <span className="relative z-10 group-hover:text-black transition-colors duration-200">Sign In</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAuth}
-                  className="group relative w-full py-4 border border-[#C9A356]/35 text-[9px] tracking-[0.45em] uppercase overflow-hidden hover:border-[#C9A356]/60 transition-colors duration-500"
+                </Link>
+                <Link
+                  href={registerHref}
+                  className="group relative w-full py-4 border border-[#C9A356]/35 text-[9px] tracking-[0.45em] uppercase overflow-hidden hover:border-[#C9A356]/60 transition-colors duration-500 text-center"
                 >
                   <span className="absolute inset-0 translate-y-full group-hover:translate-y-0 transition-transform duration-500" style={{ background: "rgba(201,163,86,0.07)", transitionTimingFunction: "cubic-bezier(0.22,0.68,0,1.2)" }} aria-hidden />
-                  <span className="relative z-10 text-[#C9A356]">Register</span>
-                </button>
+                  <span className="relative z-10 text-[#C9A356]">Create Account</span>
+                </Link>
               </div>
 
             </div>

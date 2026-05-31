@@ -47,7 +47,7 @@ export default function Hero() {
 
       {/* ── Text content ── */}
       <motion.div
-        className="relative h-full flex flex-col justify-center px-8 md:px-16 pt-24 lg:pt-0 z-10"
+        className="relative h-full flex flex-col justify-center px-6 md:px-16 pt-20 lg:pt-0 z-10"
         style={{ y: textY, opacity: textOp }}
       >
 
@@ -82,7 +82,7 @@ export default function Hero() {
 
         {/* MAKEEN */}
         <h1
-          className="text-[clamp(4.5rem,12vw,12rem)] font-black tracking-tight leading-[0.82] uppercase"
+          className="text-[clamp(2.8rem,12vw,12rem)] font-black tracking-tight leading-[0.82] uppercase"
           aria-label="Makeen Motors"
         >
           {"MAKEEN".split("").map((ch, i) => (
@@ -102,7 +102,7 @@ export default function Hero() {
         {/* MOTORS */}
         <div className="flex items-center gap-8 mb-8">
           <h2
-            className="text-[clamp(4.5rem,12vw,12rem)] font-thin tracking-[0.07em] leading-[0.82] uppercase text-zinc-600"
+            className="text-[clamp(2.8rem,12vw,12rem)] font-thin tracking-[0.07em] leading-[0.82] uppercase text-zinc-600"
             aria-label=""
           >
             {"MOTORS".split("").map((ch, i) => (
@@ -140,7 +140,7 @@ export default function Hero() {
 
         {/* CTAs */}
         <motion.div
-          className="flex items-center gap-8"
+          className="flex flex-wrap items-center gap-4 md:gap-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 1.05, ease: EASE }}
@@ -179,10 +179,10 @@ export default function Hero() {
         ].map(({ value, unit, label }) => (
           <div
             key={label}
-            className="group flex flex-col gap-1 px-5 py-5 md:px-8 md:py-7 hover:bg-white/[0.03] transition-colors duration-500 cursor-default"
+            className="group flex flex-col gap-1 px-3 py-4 md:px-8 md:py-7 hover:bg-white/[0.03] transition-colors duration-500 cursor-default"
           >
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl md:text-4xl font-thin tabular-nums leading-none text-white">
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl md:text-4xl font-thin tabular-nums leading-none text-white">
                 {value}
               </span>
               <span className="text-[9px] tracking-[0.25em] uppercase text-zinc-600 group-hover:text-zinc-400 transition-colors duration-300">

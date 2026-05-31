@@ -128,7 +128,7 @@ const CARD = {
 
 export default function MostWanted() {
   return (
-    <section className="relative px-8 md:px-16 py-24 md:py-32">
+    <section className="relative px-6 md:px-16 py-14 md:py-32">
 
       {/* Top gradient border */}
       <div
@@ -156,7 +156,7 @@ export default function MostWanted() {
             <span className="block w-[8px] h-[8px] border border-[#C9A356]/50 rotate-45 shrink-0" />
             <p className="text-[9px] tracking-[0.6em] uppercase text-zinc-600">Dubai's Finest</p>
           </div>
-          <h2 className="text-4xl md:text-6xl font-thin tracking-tight uppercase leading-none">
+          <h2 className="text-3xl md:text-6xl font-thin tracking-tight uppercase leading-none">
             Most Wanted
           </h2>
         </div>

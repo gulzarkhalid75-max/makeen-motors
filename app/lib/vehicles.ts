@@ -347,14 +347,24 @@ export const VEHICLES: Vehicle[] = [
 
 // ── Query helpers ─────────────────────────────────────────────
 
-export function getVehicleById(id: string): Vehicle | undefined {
-  return VEHICLES.find((v) => v.id === id);
+export function getVehicleById(id: string, extra: Vehicle[] = []): Vehicle | undefined {
+  const fromCatalog = VEHICLES.find((v) => v.id === id);
+  if (fromCatalog) return fromCatalog;
+  return extra.find((v) => v.id === id);
 }
 
-export function getSimilarVehicles(id: string, limit = 3): Vehicle[] {
-  const vehicle = getVehicleById(id);
+export function mergeCatalogWithListings(listings: Vehicle[]): Vehicle[] {
+  return [...VEHICLES, ...listings];
+}
+
+export function getSimilarVehicles(
+  id: string,
+  pool: Vehicle[] = VEHICLES,
+  limit = 3
+): Vehicle[] {
+  const vehicle = pool.find((v) => v.id === id);
   if (!vehicle) return [];
-  return VEHICLES.filter((v) => v.category === vehicle.category && v.id !== id).slice(0, limit);
+  return pool.filter((v) => v.category === vehicle.category && v.id !== id).slice(0, limit);
 }
 
 export function getVehiclesByCategory(category: Category): Vehicle[] {

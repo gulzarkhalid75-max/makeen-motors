@@ -182,7 +182,7 @@ export default function Footer() {
 
       {/* ── Top strip: wordmark + social ── */}
       <motion.div
-        className="relative px-8 md:px-16 pt-16 md:pt-20 pb-12 md:pb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-10 border-b border-white/[0.05]"
+        className="relative px-6 md:px-16 pt-12 md:pt-20 pb-10 md:pb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-8 md:gap-10 border-b border-white/[0.05]"
         initial="hidden"
         whileInView="visible"
         viewport={VIEWPORT}
@@ -240,7 +240,7 @@ export default function Footer() {
 
       {/* ── Main grid: nav columns + contact ── */}
       <motion.div
-        className="relative px-8 md:px-16 py-14 md:py-16 grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-8 border-b border-white/[0.05]"
+        className="relative px-6 md:px-16 py-10 md:py-16 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-8 border-b border-white/[0.05]"
         initial="hidden"
         whileInView="visible"
         viewport={VIEWPORT}
@@ -320,7 +320,7 @@ export default function Footer() {
         aria-hidden
       >
         <motion.span
-          className="text-[clamp(2.5rem,9vw,8rem)] font-black tracking-[0.06em] uppercase leading-none"
+          className="text-[clamp(1.4rem,6vw,8rem)] font-black tracking-[0.06em] uppercase leading-none"
           style={{
             background: "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
             WebkitBackgroundClip: "text",
@@ -343,7 +343,7 @@ export default function Footer() {
 
       {/* ── Bottom bar: copyright + legal ── */}
       <motion.div
-        className="relative px-8 md:px-16 py-5 flex flex-col sm:flex-row items-center justify-between gap-3"
+        className="relative px-6 md:px-16 py-5 flex flex-col sm:flex-row items-center justify-between gap-3"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={VIEWPORT}

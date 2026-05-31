@@ -3,7 +3,13 @@
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getVehicleById, getSimilarVehicles } from "@/app/lib/vehicles";
+import {
+  getVehicleById,
+  getSimilarVehicles,
+  mergeCatalogWithListings,
+} from "@/app/lib/vehicles";
+import type { Vehicle } from "@/app/lib/vehicles";
+import { isListingId } from "@/lib/listings";
 import VehicleDetails from "@/components/VehicleDetails";
 
 const NAV_LINKS = [
@@ -21,15 +27,64 @@ export default function CarDetailPage({
   const { id } = use(params);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled]  = useState(false);
-
-  const vehicle = getVehicleById(id);
-  const similar  = vehicle ? getSimilarVehicles(id) : [];
+  const [vehicle, setVehicle] = useState<Vehicle | undefined>(() => getVehicleById(id));
+  const [similar, setSimilar] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(isListingId(id));
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > window.innerHeight * 0.75);
     window.addEventListener("scroll", handler, { passive: true });
     return () => window.removeEventListener("scroll", handler);
   }, []);
+
+  useEffect(() => {
+    const catalogVehicle = getVehicleById(id);
+    if (catalogVehicle) {
+      setVehicle(catalogVehicle);
+      setSimilar(getSimilarVehicles(id));
+      setLoading(false);
+      return;
+    }
+
+    if (!isListingId(id)) {
+      setVehicle(undefined);
+      setSimilar([]);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/vehicles/${id}`);
+        if (!res.ok) {
+          if (!cancelled) {
+            setVehicle(undefined);
+            setSimilar([]);
+          }
+          return;
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        const listing: Vehicle = data.vehicle;
+        setVehicle(listing);
+        fetch("/api/listings")
+          .then(r => r.json())
+          .then(payload => {
+            if (cancelled) return;
+            const pool = mergeCatalogWithListings(payload.vehicles ?? []);
+            setSimilar(getSimilarVehicles(id, pool));
+          })
+          .catch(() => setSimilar([]));
+      } catch {
+        if (!cancelled) setVehicle(undefined);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [id]);
 
   const waText = vehicle
     ? encodeURIComponent(
@@ -132,8 +187,12 @@ export default function CarDetailPage({
           </div>
         </header>
 
-        {/* ── 404 ── */}
-        {!vehicle ? (
+        {/* ── Loading ── */}
+        {loading ? (
+          <div className="relative flex items-center justify-center min-h-screen">
+            <span className="w-8 h-8 rounded-full border border-[#C9A356]/35 border-t-[#C9A356] animate-spin" />
+          </div>
+        ) : !vehicle ? (
           <div className="relative flex flex-col items-center justify-center min-h-screen gap-8 px-8 text-center">
             <span className="absolute text-[22rem] font-black leading-none select-none pointer-events-none text-white/[0.025]">
               404

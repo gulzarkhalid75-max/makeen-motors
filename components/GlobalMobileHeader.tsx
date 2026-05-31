@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/components/AuthProvider";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -77,21 +78,17 @@ function GoldRings({ children }: { children: React.ReactNode }) {
 // ── Main component ────────────────────────────────────────────
 
 export default function GlobalMobileHeader() {
-  const [open,     setOpen]     = useState<PanelId | null>(null);
-  const [isAuthed, setIsAuthed] = useState(false);
-
-  useEffect(() => {
-    setIsAuthed(localStorage.getItem("makeen_auth") === "1");
-  }, []);
+  const [open, setOpen] = useState<PanelId | null>(null);
+  const { user, signOut } = useAuth();
+  const isAuthed = !!user;
 
   const close       = () => setOpen(null);
   const handleLeft  = () => setOpen(p => (p ? null : "nav"));
   const togglePanel = (id: "notifications" | "favorites") =>
     setOpen(p => (p === id ? null : id));
 
-  const handleSignOut = () => {
-    localStorage.removeItem("makeen_auth");
-    setIsAuthed(false);
+  const handleSignOut = async () => {
+    await signOut();
     setOpen(null);
   };
 
@@ -193,7 +190,7 @@ export default function GlobalMobileHeader() {
       {/* NAV DRAWER — slides from left                       */}
       {/* ════════════════════════════════════════════════════ */}
       <aside
-        className="md:hidden fixed left-0 bottom-0 z-[59] w-72 bg-[#050505] border-r border-white/[0.07] flex flex-col overflow-hidden"
+        className="md:hidden fixed left-0 bottom-0 z-[59] w-[min(288px,85vw)] bg-[#050505] border-r border-white/[0.07] flex flex-col overflow-hidden"
         style={slideStyle("nav", "left")}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A356]/35 to-transparent" />
@@ -258,8 +255,8 @@ export default function GlobalMobileHeader() {
               </>
             ) : (
               ([
-                { label: "Sign In",  href: "/sign-in"  },
-                { label: "Register", href: "/register" },
+                { label: "Sign In",        href: "/sign-in"  },
+                { label: "Create Account", href: "/register" },
               ] as const).map(({ label, href }, i) => (
                 <div
                   key={label}

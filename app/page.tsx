@@ -368,7 +368,7 @@ export default function Home() {
         <Hero />
 
         {/* ── Premium Vehicle Search ── */}
-        <section className="relative px-8 md:px-16 py-12 md:py-16 -mt-2 z-10">
+        <section className="relative px-6 md:px-16 py-10 md:py-16 -mt-2 z-10">
           <motion.div
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -436,7 +436,7 @@ export default function Home() {
         <FeaturedVehicles />
 
         {/* ── Popular Brands ── */}
-        <section className="relative px-8 md:px-16 py-16 md:py-20">
+        <section className="relative px-6 md:px-16 py-12 md:py-20">
           <div
             className="absolute top-0 left-0 right-0 h-px"
             style={{ background: "linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.06) 20%,rgba(255,255,255,0.12) 50%,rgba(255,255,255,0.06) 80%,transparent 100%)" }}
@@ -524,7 +524,7 @@ export default function Home() {
         <MostWanted />
 
         {/* ── Why Choose Makeen Motors ── */}
-        <section id="about" className="relative grad-border-t px-8 md:px-16 py-24 md:py-32">
+        <section id="about" className="relative grad-border-t px-6 md:px-16 py-16 md:py-32">
           <div
             className="absolute inset-0 pointer-events-none"
             aria-hidden
@@ -540,7 +540,7 @@ export default function Home() {
           >
             <div>
               <p className="text-[10px] tracking-[0.55em] uppercase text-zinc-600 mb-3">Our Promise</p>
-              <h2 className="text-4xl md:text-6xl font-thin tracking-tight uppercase leading-none">
+              <h2 className="text-3xl md:text-6xl font-thin tracking-tight uppercase leading-none">
                 Why Makeen Motors
               </h2>
             </div>
@@ -589,7 +589,7 @@ export default function Home() {
         </section>
 
         {/* ── Our Story ── */}
-        <section className="relative grad-border-t px-8 md:px-16 py-24 md:py-36 overflow-hidden">
+        <section className="relative grad-border-t px-6 md:px-16 py-14 md:py-36 overflow-hidden">
           <div
             className="absolute inset-0 pointer-events-none"
             aria-hidden
@@ -611,10 +611,10 @@ export default function Home() {
                 </span>
               </div>
               <div>
-                <h2 className="text-[clamp(3.2rem,7vw,7.5rem)] font-black tracking-tight leading-[0.85] uppercase select-none">
+                <h2 className="text-[clamp(2.6rem,7vw,7.5rem)] font-black tracking-tight leading-[0.85] uppercase select-none">
                   Beyond
                 </h2>
-                <h2 className="text-[clamp(3.2rem,7vw,7.5rem)] font-thin tracking-[0.06em] leading-[0.85] uppercase text-zinc-600 select-none">
+                <h2 className="text-[clamp(2.6rem,7vw,7.5rem)] font-thin tracking-[0.06em] leading-[0.85] uppercase text-zinc-600 select-none">
                   Ordinary
                 </h2>
               </div>
@@ -666,7 +666,7 @@ export default function Home() {
         </section>
 
         {/* ── Testimonials ── */}
-        <section className="relative grad-border-t px-8 md:px-16 py-24 md:py-32">
+        <section className="relative grad-border-t px-6 md:px-16 py-14 md:py-32">
           <div
             className="absolute inset-0 pointer-events-none"
             aria-hidden
@@ -682,7 +682,7 @@ export default function Home() {
           >
             <div>
               <p className="text-[10px] tracking-[0.55em] uppercase text-zinc-600 mb-3">Client Voices</p>
-              <h2 className="text-4xl md:text-6xl font-thin tracking-tight uppercase leading-none">What They Say</h2>
+              <h2 className="text-3xl md:text-6xl font-thin tracking-tight uppercase leading-none">What They Say</h2>
             </div>
             <div className="flex items-center gap-4 md:mb-1">
               <div className="flex gap-1">
@@ -751,7 +751,7 @@ export default function Home() {
         </section>
 
         {/* ── Contact ── */}
-        <section id="contact" className="relative grad-border-t px-8 md:px-16 py-24 md:py-32">
+        <section id="contact" className="relative grad-border-t px-6 md:px-16 py-14 md:py-32">
           <div
             className="absolute inset-0 pointer-events-none"
             aria-hidden
@@ -766,7 +766,7 @@ export default function Home() {
             variants={FADE_UP}
           >
             <p className="text-[10px] tracking-[0.55em] uppercase text-zinc-600 mb-3">Get In Touch</p>
-            <h2 className="text-4xl md:text-6xl font-thin tracking-tight uppercase leading-none">Contact Us</h2>
+            <h2 className="text-3xl md:text-6xl font-thin tracking-tight uppercase leading-none">Contact Us</h2>
           </motion.div>
 
           <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-20">
@@ -835,7 +835,7 @@ export default function Home() {
 
         {/* ── Footer ── */}
         <footer className="relative border-t border-zinc-900">
-          <div className="px-8 md:px-16 py-16 md:py-20 grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+          <div className="px-6 md:px-16 py-12 md:py-20 grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
             <div className="flex flex-col gap-6 md:col-span-1">
               <a href="/" className="group w-fit">
                 <Image
@@ -894,7 +894,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="border-t border-zinc-900 px-8 md:px-16 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="border-t border-zinc-900 px-6 md:px-16 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-[9px] tracking-[0.4em] uppercase text-zinc-800">
               © 2024 Makeen Motors LLC · All rights reserved
             </span>
